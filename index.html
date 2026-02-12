@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="amoled">
+<head>
+  am<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="ton_icone.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spotube Samsung Pro</title>
+    <style>
+        /* --- VARIABLES & DESIGN AMOLED --- */
+        :root, [data-theme="amoled"] { 
+            --bg: #000000; --text: #ffffff; --item: #111; --accent: #a255ff; --sub: #888; 
+        }
+        [data-theme="dark"] { --bg: #121212; --text: #ffffff; --item: #1e1e1e; --accent: #1DB954; --sub: #b3b3b3; }
+
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; }
+
+        /* --- NAVIGATION TABS --- */
+        .tabs { display: flex; align-items: center; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tab { padding: 15px 20px; cursor: pointer; font-weight: bold; color: var(--sub); border-bottom: 2px solid transparent; transition: 0.3s; }
+        .tab.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+        .tab-settings { margin-left: auto; padding: 15px; font-size: 20px; }
+
+        /* --- LISTES & GRILLES --- */
+        #main-content { height: calc(100vh - 130px); overflow-y: auto; padding: 15px; }
+        
+        .track-item { 
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px; margin-bottom: 8px; background: var(--item); border-radius: 12px; 
+        }
+
+        .playlists-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .playlist-card { 
+            background: var(--item); aspect-ratio: 1/1; border-radius: 20px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .btn-del-pl { position: absolute; top: 8px; right: 8px; background: rgba(255,0,0,0.2); color: #ff4444; border: none; border-radius: 50%; width: 28px; height: 28px; }
+
+        /* --- LECTEUR (MINI & PLEIN) --- */
+        .player-bar { position: fixed; bottom: 0; width: 100%; height: 70px; background: #080808; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-sizing: border-box; border-top: 1px solid #222; z-index: 100; }
+        
+        #full-player {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #111, #000); z-index: 1000;
+            display: flex; flex-direction: column; transform: translateY(100%);
+            transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        #full-player.active { transform: translateY(0); }
+        
+        .play-btn-main { width: 70px; height: 70px; border-radius: 50%; background: white !important; color: black !important; font-size: 35px; border: none; }
+        #add-btn { position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 24px; z-index: 90; }
+        
+        select#theme-sel { display: none; position: absolute; right: 10px; top: 50px; background: #222; color: white; border: 1px solid #444; padding: 10px; border-radius: 10px; z-index: 2000; }
+    </style>
+</head>
+<body>
+<div id="search-container" style="padding: 10px 15px; background: rgba(0,0,0,0.2);">
+    <input type="text" id="search-input" placeholder="Rechercher un titre ou un artiste..." 
+           style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--item); color: white; box-sizing: border-box; outline: none;">
+</div>
+
+    <div class="tabs">
+        <div id="btn-back" class="tab" onclick="goBack()" style="display:none; color: var(--accent);">← Retour</div>
+        <div id="tab-titles" class="tab active" onclick="switchTab('all', this)">Titres</div>
+        <div id="tab-playlists" class="tab" onclick="switchTab('playlists', this)">Playlists</div>
+        <div class="tab-settings" onclick="toggleThemeMenu()">⋮</div>
+    </div>
+
+    <select id="theme-sel" onchange="setTheme(this.value)">
+        <option value="amoled">Amoled</option>
+        <option value="dark">Sombre</option>
+    </select>
+
+    <div id="main-content">
+        <div id="playlist-area"></div>
+        <div id="playlist-manager" style="display:none;">
+            <div style="text-align:center; margin-bottom:20px;"><button onclick="createPlaylist()" style="padding:10px 20px; border-radius:20px; background:var(--accent); color:white; border:none;">+ Nouvelle Playlist</button></div>
+            <div id="playlists-grid" class="playlists-grid"></div>
+        </div>
+    </div>
+
+    <button id="add-btn" onclick="document.getElementById('file-input').click()">+</button>
+    <input type="file" id="file-input" webkitdirectory directory multiple hidden>
+
+    <div class="player-bar" onclick="if(event.target.tagName !== 'BUTTON') toggleFullscreen()">
+        <div style="display:flex; align-items:center;">
+            <div style="width:40px; height:40px; background:#222; border-radius:5px; margin-right:12px; display:flex; align-items:center; justify-content:center;">🎵</div>
+            <div>
+                <div id="m-title" style="font-size:14px; font-weight:bold;">Aucun titre</div>
+                <div id="m-artist" style="font-size:12px; color:var(--sub);">Artiste</div>
+            </div>
+        </div>
+        <button onclick="togglePlay()" id="play-btn" style="background:none; border:none; color:white; font-size:25px;">▶</button>
+    </div>
+
+    <div id="full-player">
+        <div style="padding:30px; font-size:35px;" onclick="toggleFullscreen()">∨</div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <div id="f-art" style="width:280px; height:280px; background:#222; border-radius:25px; display:flex; align-items:center; justify-content:center; font-size:80px; margin-bottom:40px;">🎵</div>
+            <h2 id="f-title">Titre</h2>
+            <p id="f-artist" style="color:var(--sub);">Artiste</p>
+        </div>
+        <div style="padding: 0 40px 60px;">
+            <input type="range" id="progress-bar" value="0" style="width:100%; accent-color:#fff; margin-bottom:40px;">
+            <div style="display:flex; justify-content:space-around; align-items:center;">
+                <button onclick="jouerPrec()" style="background:none; border:none; color:white; font-size:35px;">⏮</button>
+                <button onclick="togglePlay()" id="big-play-btn" class="play-btn-main">▶</button>
+                <button onclick="jouerSuiv()" style="background:none; border:none; color:white; font-size:35px;">⏭</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-engine"></audio>
+
+    <script>
+        let allSongs = [];
+        let currentView = [];
+        let playlists = JSON.parse(localStorage.getItem('user-playlists')) || {};
+        let currentIndex = 0;
+        let activeListName = 'all';
+        const audio = document.getElementById('audio-engine');
+
+        // --- NAVIGATION ---
+        function switchTab(type, el) {
+            if(type === 'all') {
+                document.getElementById('playlist-area').style.display = 'block';
+                document.getElementById('playlist-manager').style.display = 'none';
+                render(allSongs, 'all');
+            } else {
+                document.getElementById('playlist-area').style.display = 'none';
+                document.getElementById('playlist-manager').style.display = 'block';
+                renderPlaylistsGrid();
+            }
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function renderPlaylistsGrid() {
+            const grid = document.getElementById('playlists-grid');
+            grid.innerHTML = '';
+            for(let name in playlists) {
+                const card = document.createElement('div');
+                card.className = 'playlist-card';
+                card.innerHTML = `<button class="btn-del-pl" onclick="event.stopPropagation(); deletePlaylist('${name}')">✕</button>
+                                  <div style="font-size:40px;">📂</div><span>${name}</span>
+                                  <small style="color:var(--sub)">${playlists[name].length} titres</small>`;
+                card.onclick = () => openPlaylist(name);
+                grid.appendChild(card);
+            }
+        }
+
+        function openPlaylist(name) {
+            activeListName = name;
+            document.getElementById('playlist-area').style.display = 'block';
+            document.getElementById('playlist-manager').style.display = 'none';
+            document.getElementById('btn-back').style.display = 'block';
+            document.getElementById('btn-back').innerText = `← ${name}`;
+            document.getElementById('tab-titles').style.display = 'none';
+            document.getElementById('tab-playlists').style.display = 'none';
+            let filtered = allSongs.filter(f => playlists[name].includes(f.name));
+            render(filtered, name);
+        }
+
+        function goBack() {
+            document.getElementById('btn-back').style.display = 'none';
+            document.getElementById('tab-titles').style.display = 'block';
+            document.getElementById('tab-playlists').style.display = 'block';
+            switchTab('playlists', document.getElementById('tab-playlists'));
+        }
+
+        // --- CORE ---
+        document.getElementById('file-input').onchange = (e) => {
+            allSongs = Array.from(e.target.files).filter(f => f.name.endsWith('.mp3'));
+            render(allSongs, 'all');
+        };
+
+        function render(songs, listName) {
+            currentView = songs;
+            const container = document.getElementById('playlist-area');
+            container.innerHTML = '';
+            songs.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'track-item';
+                let btn = listName === 'all' 
+                    ? `<button onclick="addToPlaylistPrompt('${f.name}')" style="background:none; border:none; color:var(--accent); font-size:20px;">+</button>`
+                    : `<button onclick="removeFromPlaylist('${f.name}', '${listName}')" style="background:none; border:none; color:#ff4444;">✕</button>`;
+                item.innerHTML = `<div onclick="playSong(${i})" style="flex:1"><b>${f.name.replace('.mp3','')}</b></div>${btn}`;
+                container.appendChild(item);
+            });
+        }
+
+        function playSong(i) {
+            currentIndex = i;
+            const file = currentView[i];
+            audio.src = URL.createObjectURL(file);
+            audio.play();
+            document.getElementById('m-title').innerText = file.name.replace('.mp3','');
+            document.getElementById('f-title').innerText = file.name.replace('.mp3','');
+            updateIcons("⏸");
+        }
+
+        function togglePlay() { audio.paused ? (audio.play(), updateIcons("⏸")) : (audio.pause(), updateIcons("▶")); }
+        function updateIcons(icon) { document.getElementById('play-btn').innerText = icon; document.getElementById('big-play-btn').innerText = icon; }
+        function jouerSuiv() { currentIndex = (currentIndex + 1) % currentView.length; playSong(currentIndex); }
+        function jouerPrec() { currentIndex = (currentIndex - 1 + currentView.length) % currentView.length; playSong(currentIndex); }
+        audio.onended = jouerSuiv;
+
+        // --- PLAYLIST LOGIC ---
+        function createPlaylist() { let n = prompt("Nom :"); if(n){ playlists[n] = []; save(); renderPlaylistsGrid(); } }
+        function deletePlaylist(n) { if(confirm("Supprimer ?")){ delete playlists[n]; save(); renderPlaylistsGrid(); } }
+        function addToPlaylistPrompt(file) {
+            let n = prompt("Nom de la playlist où ajouter ce titre :");
+            if(playlists[n]) { playlists[n].push(file); save(); alert("Ajouté !"); }
+            else { alert("Cette playlist n'existe pas."); }
+        }
+        function removeFromPlaylist(file, list) { playlists[list] = playlists[list].filter(f => f !== file); save(); openPlaylist(list); }
+        function save() { localStorage.setItem('user-playlists', JSON.stringify(playlists)); }
+        
+        // --- UI ---
+        function toggleFullscreen() { document.getElementById('full-player').classList.toggle('active'); }
+        function toggleThemeMenu() { let s = document.getElementById('theme-sel'); s.style.display = s.style.display === 'block' ? 'none' : 'block'; }
+        function setTheme(t) { document.body.setAttribute('data-theme', t); document.getElementById('theme-sel').style.display='none'; }
+        audio.ontimeupdate = () => document.getElementById('progress-bar').value = (audio.currentTime / audio.duration) * 100 || 0;
+        document.getElementById('progress-bar').oninput = (e) => audio.currentTime = (e.target.value * audio.duration) / 100;
+        document.getElementById('search-input').addEventListener('input', function(e) {
+    const term = e.target.value.toLowerCase();
+    
+    // On filtre la liste actuelle (soit 'tous les titres', soit la playlist ouverte)
+    const filteredSongs = currentView.filter(song => 
+        song.name.toLowerCase().includes(term)
+    );
+    
+    // On réaffiche seulement les résultats
+    const container = document.getElementById('playlist-area');
+    container.innerHTML = '';
+    
+    filteredSongs.forEach((f, i) => {
+        const item = document.createElement('div');
+        item.className = 'track-item';
+        
+        // On récupère le bouton correct (Ajouter ou Retirer) selon le mode
+        let btn = activeListName === 'all' 
+            ? `<button onclick="addToPlaylistPrompt('${f.name}')" style="background:none; border:none; color:var(--accent); font-size:20px;">+</button>`
+            : `<button onclick="removeFromPlaylist('${f.name}', '${activeListName}')" style="background:none; border:none; color:#ff4444;">✕</button>`;
+            
+        item.innerHTML = `<div onclick="playSong(${allSongs.indexOf(f)})" style="flex:1"><b>${f.name.replace('.mp3','')}</b></div>${btn}`;
+        container.appendChild(item);
+    });
+});
+function switchTab(type, el) {
+    const searchBar = document.getElementById('search-container');
+    if(type === 'all') {
+        document.getElementById('playlist-area').style.display = 'block';
+        document.getElementById('playlist-manager').style.display = 'none';
+        searchBar.style.display = 'block'; // Affiche la recherche
+        render(allSongs, 'all');
+    } else {
+        document.getElementById('playlist-area').style.display = 'none';
+        document.getElementById('playlist-manager').style.display = 'block';
+        searchBar.style.display = 'none'; // Cache la recherche
+        renderPlaylistsGrid();
+    }
+    // ... reste du code ...
+}
+
+    </script>
+</body>
+</html>
