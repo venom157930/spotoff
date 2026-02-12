@@ -1,0 +1,50 @@
+/* Couleurs par défaut (Mode Clair) */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --accent-color: #1DB954; /* Vert type Spotify */
+}
+
+/* Couleurs Mode Sombre */
+[data-theme="dark"] {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --accent-color: #bb86fc;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: all 0.3s ease; /* Animation fluide du changement */
+}
+
+button {
+    background-color: var(--accent-color);
+}
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --accent-color: #1DB954;
+}
+
+/* Thème Amoled (Noir profond pour Samsung) */
+[data-theme="amoled"] {
+    --bg-color: #000000;
+    --text-color: #ffffff;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: sans-serif;
+}
+
+.track-item {
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+.track-item:active {
+    background-color: var(--accent-color);
+}
