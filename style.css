@@ -48,3 +48,26 @@ body {
 .track-item:active {
     background-color: var(--accent-color);
 }
+.search-container {
+    padding: 10px;
+    position: sticky; /* Reste en haut au défilement */
+    top: 0;
+    background: var(--bg-color);
+    z-index: 10;
+}
+
+#search-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 25px; /* Look arrondi Samsung */
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: white;
+    outline: none;
+    box-sizing: border-box;
+}
+
+#search-input:focus {
+    border-color: var(--accent-color); /* Utilise ta couleur personnalisée */
+}
+
